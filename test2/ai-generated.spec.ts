@@ -33,7 +33,7 @@ test.describe('User Invitation Functionality - RA-2 (Updated Environment)', () =
 
   // Helper function to login as regular user
   async function loginAsRegularUser() {
-    await page.goto('x');
+    await page.goto('https://robotesta.app/');
     await page.waitForLoadState('networkidle');
     
     await page.fill('input[name="email"], input[name="username"], #email, #username', 'user@test.com');
