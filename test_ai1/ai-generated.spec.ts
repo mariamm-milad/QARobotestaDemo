@@ -1,12 +1,10 @@
-// RAB-113: AI Code Update and Refinement Tests
 import { test, expect } from '@playwright/test';
-
-const baseUrl = 'https://testenv.com';
 
 test.describe('AI Code Updates and Refinements - RAB-113', () => {
 
   test.beforeEach(async ({ page }) => {
-    await page.goto(baseUrl);
+    // Uses baseURL from playwright.config.ts
+    await page.goto('/');
 
     // Navigate to Generate AI Code page
     await page.click('[data-testid="generate-ai-code"]');
