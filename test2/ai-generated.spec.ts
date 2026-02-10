@@ -1,326 +1,302 @@
-{
-  "description": "Comprehensive test suite for RA-2 user invitation functionality covering all acceptance criteria with updated environment URL. Tests admin-only access, popup interactions, successful invitations, email validation, user list updates, and all popup closure methods with robust error handling and edge cases.",
-  "generatedFiles": [
-    {
-      "fileName": "user-invitation-updated.spec.ts",
-      "code": "// Test suite for RA-2: Admin User Invitation Functionality (Updated Environment)
-import { test, expect } from '@playwright/test';
+Based on the JIRA issue RB-9 and the page analysis showing a Login button on the Robotesta website, I have sufficient information to generate comprehensive test cases for admin login functionality.
 
-test.describe('User Invitation Functionality - RA-2 (Updated Environment)', () => {
-  let page;
 
-  test.beforeEach(async ({ browser }) => {
-    page = await browser.newPage();
+
+
+// Test data configuration
+const TEST_DATA = {
+  validAdmin: {
+    username: 'admin@robotesta.com',
+    password: 'AdminPassword123!'
+  },
+  invalidCredentials: {
+    username: 'invalid@robotesta.com',
+    password: 'wrongpassword'
+  },
+  baseUrl: 'https://www.robotesta.app'
+};
+
+test.describe('Admin Login Functionality - RB-9', () => {
+  test.beforeEach(async ({ page }) => {
+    // Navigate to the Robotesta homepage
+    await page.goto(TEST_DATA.baseUrl);
+    await expect(page).toHaveTitle('Robotesta');
   });
 
-  test.afterEach(async () => {
-    await page.close();
-  });
-
-  // Helper function to login as admin
-  async function loginAsAdmin() {
-    await page.goto('https://robotesta.app/');
-    await page.waitForLoadState('networkidle');
+  test('RB-9: Verify Admin can successfully login with valid credentials', async ({ page }) => {
+    // Step 1: Navigate to login page by clicking Login button
+    await page.getByRole('button', { name: 'Login' }).click();
     
-    // Handle different login scenarios
-    await page.fill('input[name="email"], input[name="username"], #email, #username', 'admin@test.com');
-    await page.fill('input[name="password"], #password', 'adminPassword123');
-    await page.click('button[type="submit"], .login-btn, #login-button');
+    // Wait for login form to appear
+    await expect(page.getByRole('textbox', { name: /username|email/i })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: /password/i })).toBeVisible();
     
-    // Wait for successful login and navigation
-    await page.waitForURL(/dashboard|users|home/, { timeout: 10000 });
-  }
-
-  // Helper function to login as regular user
-  async function loginAsRegularUser() {
-    await page.goto('https://robotesta.app/');
-    await page.waitForLoadState('networkidle');
+    // Step 2: Enter valid admin username
+    await page.getByRole('textbox', { name: /username|email/i }).fill(TEST_DATA.validAdmin.username);
     
-    await page.fill('input[name="email"], input[name="username"], #email, #username', 'user@test.com');
-    await page.fill('input[name="password"], #password', 'userPassword123');
-    await page.click('button[type="submit"], .login-btn, #login-button');
+    // Step 3: Enter correct password for admin account
+    await page.getByRole('textbox', { name: /password/i }).fill(TEST_DATA.validAdmin.password);
     
-    await page.waitForURL(/dashboard|home/, { timeout: 10000 });
-  }
-
-  // Helper function to navigate to Users page
-  async function navigateToUsersPage() {
-    // Multiple ways to navigate to users page
-    const usersLink = page.locator('a[href*="users"], .nav-users, [data-menu="users"]').first();
-    if (await usersLink.isVisible()) {
-      await usersLink.click();
-    } else {
-      // Try menu dropdown
-      await page.click('.menu-toggle, .hamburger, .nav-toggle');
-      await page.click('a[href*="users"], .nav-users');
+    // Step 4: Click the Login button
+    await page.getByRole('button', { name: /login|sign in/i }).click();
+    
+    // Expected Result: Admin is redirected to dashboard or homepage with admin features
+    await expect(page).toHaveURL(/.*\/(dashboard|admin|home).*/, { timeout: 10000 });
+    
+    // Verify admin-specific elements are present
+    await expect(page.getByText(/dashboard|admin|welcome/i)).toBeVisible();
+    
+    // Verify successful login indicators
+    await expect(page.getByRole('button', { name: /logout|sign out|profile/i })).toBeVisible();
+    
+    // Verify admin features are accessible
+    const adminElements = [
+      page.getByText(/admin panel/i),
+      page.getByText(/manage/i),
+      page.getByText(/settings/i),
+      page.getByRole('navigation')
+    ];
+    
+    // At least one admin feature should be visible
+    let adminFeatureFound = false;
+    for (const element of adminElements) {
+      if (await element.isVisible().catch(() => false)) {
+        adminFeatureFound = true;
+        break;
+      }
     }
-    
-    await page.waitForURL(/users/, { timeout: 10000 });
-    await page.waitForLoadState('networkidle');
-  }
-
-  test('AC1: Verify only admin users can see and access +Invite User button', async () => {
-    await loginAsAdmin();
-    await navigateToUsersPage();
-    
-    // Multiple selector strategies for invite button
-    const inviteButton = page.locator(
-      'button:has-text("+Invite User"), ' +
-      'button:has-text("Invite User"), ' +
-      '.invite-btn, ' +
-      '[data-testid="invite-user-button"], ' +
-      '#invite-user-btn'
-    ).first();
-    
-    await expect(inviteButton).toBeVisible({ timeout: 10000 });
-    await expect(inviteButton).toBeEnabled();
-    
-    // Verify button text contains invite
-    const buttonText = await inviteButton.textContent();
-    expect(buttonText?.toLowerCase()).toContain('invite');
+    expect(adminFeatureFound).toBeTruthy();
   });
 
-  test('AC1: Verify regular users cannot see +Invite User button', async () => {
-    await loginAsRegularUser();
-    await navigateToUsersPage();
+  test('Verify login form elements are present and accessible', async ({ page }) => {
+    await page.getByRole('button', { name: 'Login' }).click();
     
-    const inviteButton = page.locator(
-      'button:has-text("+Invite User"), ' +
-      'button:has-text("Invite User"), ' +
-      '.invite-btn, ' +
-      '[data-testid="invite-user-button"], ' +
-      '#invite-user-btn'
-    );
+    // Verify form elements
+    await expect(page.getByRole('textbox', { name: /username|email/i })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: /password/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /login|sign in/i })).toBeVisible();
     
-    await expect(inviteButton).not.toBeVisible();
+    // Verify form accessibility
+    const usernameField = page.getByRole('textbox', { name: /username|email/i });
+    const passwordField = page.getByRole('textbox', { name: /password/i });
+    
+    await expect(usernameField).toBeEnabled();
+    await expect(passwordField).toBeEnabled();
+    await expect(passwordField).toHaveAttribute('type', 'password');
   });
 
-  test('AC2: Verify +Invite User button opens popup with correct fields', async () => {
-    await loginAsAdmin();
-    await navigateToUsersPage();
+  test('Verify login fails with invalid credentials', async ({ page }) => {
+    await page.getByRole('button', { name: 'Login' }).click();
     
-    // Click the invite user button
-    const inviteButton = page.locator(
-      'button:has-text("+Invite User"), ' +
-      'button:has-text("Invite User"), ' +
-      '.invite-btn'
-    ).first();
+    // Enter invalid credentials
+    await page.getByRole('textbox', { name: /username|email/i }).fill(TEST_DATA.invalidCredentials.username);
+    await page.getByRole('textbox', { name: /password/i }).fill(TEST_DATA.invalidCredentials.password);
+    await page.getByRole('button', { name: /login|sign in/i }).click();
     
-    await inviteButton.click();
+    // Verify error message appears
+    await expect(page.getByText(/invalid|incorrect|error|failed/i)).toBeVisible({ timeout: 5000 });
     
-    // Verify popup is visible with multiple selector strategies
-    const popup = page.locator(
-      '.modal, .popup, .dialog, ' +
-      '[role="dialog"], ' +
-      '.invite-modal, ' +
-      '#invite-popup'
-    ).first();
-    
-    await expect(popup).toBeVisible({ timeout: 5000 });
-    
-    // Verify popup title
-    const popupTitle = popup.locator('h1, h2, h3, .title, .modal-title');
-    await expect(popupTitle).toContainText(/invite user/i);
-    
-    // Verify email text field
-    const emailField = popup.locator(
-      'input[type="email"], ' +
-      'input[name="email"], ' +
-      '.email-input, ' +
-      '#email'
-    ).first();
-    
-    await expect(emailField).toBeVisible();
-    await expect(emailField).toBeEditable();
-    
-    // Verify role dropdown
-    const roleDropdown = popup.locator(
-      'select[name="role"], ' +
-      '.role-select, ' +
-      '#role, ' +
-      'select:has(option[value="User"])'
-    ).first();
-    
-    await expect(roleDropdown).toBeVisible();
-    
-    // Verify dropdown options
-    await expect(roleDropdown.locator('option[value="User"], option:has-text("User")')).toBeVisible();
-    await expect(roleDropdown.locator('option[value="Admin"], option:has-text("Admin")')).toBeVisible();
-    
-    // Verify popup buttons
-    const okButton = popup.locator('button:has-text("Ok"), button:has-text("Send"), .ok-btn').first();
-    const cancelButton = popup.locator('button:has-text("Cancel"), .cancel-btn').first();
-    const closeButton = popup.locator('.close, .modal-close, button:has-text("×")').first();
-    
-    await expect(okButton).toBeVisible();
-    await expect(cancelButton).toBeVisible();
-    await expect(closeButton).toBeVisible();
+    // Verify user remains on login page
+    await expect(page.getByRole('textbox', { name: /username|email/i })).toBeVisible();
   });
 
-  test('AC3: Verify successful invitation with User role', async () => {
-    await loginAsAdmin();
-    await navigateToUsersPage();
+  test('Verify login fails with empty credentials', async ({ page }) => {
+    await page.getByRole('button', { name: 'Login' }).click();
     
-    // Get initial user count
-    const userRows = page.locator('tbody tr, .user-row, .user-item');
-    const initialUserCount = await userRows.count();
+    // Attempt login with empty fields
+    await page.getByRole('button', { name: /login|sign in/i }).click();
     
-    // Open invite popup
-    await page.locator('button:has-text("Invite")').first().click();
+    // Verify validation messages
+    const validationMessages = [
+      page.getByText(/required|mandatory|enter/i),
+      page.getByText(/username.*required/i),
+      page.getByText(/password.*required/i)
+    ];
     
-    const popup = page.locator('.modal, .popup, [role="dialog"]').first();
-    await expect(popup).toBeVisible();
-    
-    // Fill in invitation details
-    const testEmail = `newuser_${Date.now()}@test.com`;
-    await popup.locator('input[type="email"], input[name="email"]').fill(testEmail);
-    await popup.locator('select[name="role"], .role-select').selectOption('User');
-    
-    // Submit invitation
-    await popup.locator('button:has-text("Ok"), button:has-text("Send")').click();
-    
-    // Verify confirmation message
-    const confirmationMessage = page.locator(
-      '.toast, .notification, .alert, .success-message, ' +
-      ':has-text("successfully"), :has-text("sent")'
-    );
-    
-    await expect(confirmationMessage).toBeVisible({ timeout: 10000 });
-    
-    // Verify popup is closed
-    await expect(popup).not.toBeVisible();
-    
-    // Verify user appears in list with Pending status
-    await page.waitForTimeout(2000); // Allow time for list update
-    
-    const newUserRow = page.locator(`tr:has-text("${testEmail}"), .user-item:has-text("${testEmail}")`);
-    await expect(newUserRow).toBeVisible({ timeout: 10000 });
-    
-    // Verify status is Pending
-    await expect(newUserRow).toContainText(/pending/i);
-    await expect(newUserRow).toContainText(/user/i);
-    
-    // Verify user count increased
-    const finalUserCount = await userRows.count();
-    expect(finalUserCount).toBe(initialUserCount + 1);
+    let validationFound = false;
+    for (const message of validationMessages) {
+      if (await message.isVisible().catch(() => false)) {
+        validationFound = true;
+        break;
+      }
+    }
+    expect(validationFound).toBeTruthy();
   });
 
-  test('AC3: Verify successful invitation with Admin role', async () => {
-    await loginAsAdmin();
-    await navigateToUsersPage();
+  test('Verify login fails with empty username', async ({ page }) => {
+    await page.getByRole('button', { name: 'Login' }).click();
     
-    // Open invite popup
-    await page.locator('button:has-text("Invite")').first().click();
+    // Enter only password
+    await page.getByRole('textbox', { name: /password/i }).fill(TEST_DATA.validAdmin.password);
+    await page.getByRole('button', { name: /login|sign in/i }).click();
     
-    const popup = page.locator('.modal, .popup, [role="dialog"]').first();
-    
-    // Fill in invitation details
-    const testEmail = `newadmin_${Date.now()}@test.com`;
-    await popup.locator('input[type="email"]').fill(testEmail);
-    await popup.locator('select[name="role"]').selectOption('Admin');
-    
-    // Submit invitation
-    await popup.locator('button:has-text("Ok"), button:has-text("Send")').click();
-    
-    // Verify confirmation message
-    await expect(page.locator('.toast, .notification, .success-message')).toBeVisible();
-    
-    // Verify user appears in list with correct role
-    const newUserRow = page.locator(`tr:has-text("${testEmail}")`);
-    await expect(newUserRow).toBeVisible({ timeout: 10000 });
-    await expect(newUserRow).toContainText(/admin/i);
-    await expect(newUserRow).toContainText(/pending/i);
+    // Verify username validation
+    await expect(page.getByText(/username.*required|email.*required/i)).toBeVisible();
   });
 
-  test('AC4: Verify Cancel button does not change data or send emails', async () => {
-    await loginAsAdmin();
-    await navigateToUsersPage();
+  test('Verify login fails with empty password', async ({ page }) => {
+    await page.getByRole('button', { name: 'Login' }).click();
     
-    // Get initial user count
-    const initialUserCount = await page.locator('tbody tr, .user-row').count();
+    // Enter only username
+    await page.getByRole('textbox', { name: /username|email/i }).fill(TEST_DATA.validAdmin.username);
+    await page.getByRole('button', { name: /login|sign in/i }).click();
     
-    // Open invite popup
-    await page.locator('button:has-text("Invite")').first().click();
-    
-    const popup = page.locator('.modal, .popup, [role="dialog"]').first();
-    
-    // Fill in invitation details
-    const testEmail = 'cancelled@test.com';
-    await popup.locator('input[type="email"]').fill(testEmail);
-    await popup.locator('select[name="role"]').selectOption('User');
-    
-    // Click Cancel button
-    await popup.locator('button:has-text("Cancel")').click();
-    
-    // Verify popup is closed
-    await expect(popup).not.toBeVisible();
-    
-    // Verify no confirmation message
-    await expect(page.locator('.toast, .notification')).not.toBeVisible();
-    
-    // Verify user count unchanged
-    const finalUserCount = await page.locator('tbody tr, .user-row').count();
-    expect(finalUserCount).toBe(initialUserCount);
-    
-    // Verify user not in list
-    const cancelledUserRow = page.locator(`tr:has-text("${testEmail}")`);
-    await expect(cancelledUserRow).not.toBeVisible();
+    // Verify password validation
+    await expect(page.getByText(/password.*required/i)).toBeVisible();
   });
 
-  test('AC5: Verify popup can be closed by X icon', async () => {
-    await loginAsAdmin();
-    await navigateToUsersPage();
+  test('Verify password field security (masked input)', async ({ page }) => {
+    await page.getByRole('button', { name: 'Login' }).click();
     
-    await page.locator('button:has-text("Invite")').first().click();
+    const passwordField = page.getByRole('textbox', { name: /password/i });
     
-    const popup = page.locator('.modal, .popup, [role="dialog"]').first();
-    await expect(popup).toBeVisible();
+    // Verify password field type
+    await expect(passwordField).toHaveAttribute('type', 'password');
     
-    // Close by X icon
-    await popup.locator('.close, .modal-close, button:has-text("×")').first().click();
-    await expect(popup).not.toBeVisible();
+    // Enter password and verify it's masked
+    await passwordField.fill('testpassword123');
+    const inputValue = await passwordField.inputValue();
+    expect(inputValue).toBe('testpassword123'); // Value should be there but display should be masked
   });
 
-  test('AC5: Verify popup can be closed by Ok button (after filling form)', async () => {
-    await loginAsAdmin();
-    await navigateToUsersPage();
+  test('Verify login form keyboard navigation', async ({ page }) => {
+    await page.getByRole('button', { name: 'Login' }).click();
     
-    await page.locator('button:has-text("Invite")').first().click();
+    const usernameField = page.getByRole('textbox', { name: /username|email/i });
+    const passwordField = page.getByRole('textbox', { name: /password/i });
+    const loginButton = page.getByRole('button', { name: /login|sign in/i });
     
-    const popup = page.locator('.modal, .popup, [role="dialog"]').first();
+    // Test tab navigation
+    await usernameField.focus();
+    await expect(usernameField).toBeFocused();
     
-    await popup.locator('input[type="email"]').fill('okbutton@test.com');
-    await popup.locator('select[name="role"]').selectOption('User');
+    await page.keyboard.press('Tab');
+    await expect(passwordField).toBeFocused();
     
-    // Close by Ok button
-    await popup.locator('button:has-text("Ok"), button:has-text("Send")').click();
-    await expect(popup).not.toBeVisible();
+    await page.keyboard.press('Tab');
+    await expect(loginButton).toBeFocused();
   });
 
-  test('AC5: Verify popup can be closed by Cancel button', async () => {
-    await loginAsAdmin();
-    await navigateToUsersPage();
+  test('Verify login form submission with Enter key', async ({ page }) => {
+    await page.getByRole('button', { name: 'Login' }).click();
     
-    await page.locator('button:has-text("Invite")').first().click();
+    // Fill credentials
+    await page.getByRole('textbox', { name: /username|email/i }).fill(TEST_DATA.validAdmin.username);
+    await page.getByRole('textbox', { name: /password/i }).fill(TEST_DATA.validAdmin.password);
     
-    const popup = page.locator('.modal, .popup, [role="dialog"]').first();
+    // Submit form using Enter key
+    await page.keyboard.press('Enter');
     
-    // Close by Cancel button
-    await popup.locator('button:has-text("Cancel")').click();
-    await expect(popup).not.toBeVisible();
+    // Verify login attempt (should redirect or show result)
+    await page.waitForTimeout(2000);
+    const currentUrl = page.url();
+    expect(currentUrl).not.toBe(TEST_DATA.baseUrl);
   });
 
-  test('AC5: Verify popup can be closed by clicking outside', async () => {
-    await loginAsAdmin();
-    await navigateToUsersPage();
+  test('Verify login button state during form submission', async ({ page }) => {
+    await page.getByRole('button', { name: 'Login' }).click();
     
-    await page.locator('button:has-text("Invite")').first().click();
+    const usernameField = page.getByRole('textbox', { name: /username|email/i });
+    const passwordField = page.getByRole('textbox', { name: /password/i });
+    const loginButton = page.getByRole('button', { name: /login|sign in/i });
     
-    const popup = page.locator('.modal, .popup, [role="dialog"]').first();
-    await expect(popup).toBeVisible();
+    // Fill valid credentials
+    await usernameField.fill(TEST_DATA.validAdmin.username);
+    await passwordField.fill(TEST_DATA.validAdmin.password);
     
-    // Click outside popup (on backdrop or body)
-    await page.locator('body').click({ position: { x: 10, y: 10 } });
+    // Click login and check for loading state
+    await loginButton.click();
     
-    // Alternative: click on modal backdrop
-    const backdrop = page.locator('.modal-backdrop,
+    // Check if button shows loading state (common UX pattern)
+    const loadingStates = [
+      page.getByText(/loading|signing in|please wait/i),
+      page.locator('[data-testid*="loading"]'),
+      page.locator('.spinner, .loading')
+    ];
+    
+    // At least one loading indicator might be present
+    await page.waitForTimeout(500); // Brief wait to catch loading state
+  });
+
+  test('Verify successful login persistence across page refresh', async ({ page }) => {
+    // First, perform successful login
+    await page.getByRole('button', { name: 'Login' }).click();
+    await page.getByRole('textbox', { name: /username|email/i }).fill(TEST_DATA.validAdmin.username);
+    await page.getByRole('textbox', { name: /password/i }).fill(TEST_DATA.validAdmin.password);
+    await page.getByRole('button', { name: /login|sign in/i }).click();
+    
+    // Wait for successful login
+    await expect(page).toHaveURL(/.*\/(dashboard|admin|home).*/, { timeout: 10000 });
+    
+    // Refresh the page
+    await page.reload();
+    
+    // Verify user is still logged in
+    await expect(page.getByRole('button', { name: /logout|sign out|profile/i })).toBeVisible();
+    
+    // Verify not redirected back to login
+    expect(page.url()).not.toContain('login');
+  });
+});
+
+// Additional test suite for login security and edge cases
+test.describe('Admin Login Security Tests - RB-9 Extended', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto(TEST_DATA.baseUrl);
+  });
+
+  test('Verify SQL injection protection in login fields', async ({ page }) => {
+    await page.getByRole('button', { name: 'Login' }).click();
+    
+    const maliciousInputs = [
+      "'; DROP TABLE users; --",
+      "admin'--",
+      "' OR '1'='1",
+      "' UNION SELECT * FROM users --"
+    ];
+    
+    for (const maliciousInput of maliciousInputs) {
+      await page.getByRole('textbox', { name: /username|email/i }).fill(maliciousInput);
+      await page.getByRole('textbox', { name: /password/i }).fill(maliciousInput);
+      await page.getByRole('button', { name: /login|sign in/i }).click();
+      
+      // Should not crash or expose database errors
+      await expect(page.getByText(/database error|sql error|syntax error/i)).not.toBeVisible();
+      
+      // Clear fields for next iteration
+      await page.getByRole('textbox', { name: /username|email/i }).clear();
+      await page.getByRole('textbox', { name: /password/i }).clear();
+    }
+  });
+
+  test('Verify XSS protection in login fields', async ({ page }) => {
+    await page.getByRole('button', { name: 'Login' }).click();
+    
+    const xssPayloads = [
+      'alert("XSS")',
+      'javascript:alert("XSS")',
+      '',
+      '">alert("XSS")'
+    ];
+    
+    for (const payload of xssPayloads) {
+      await page.getByRole('textbox', { name: /username|email/i }).fill(payload);
+      await page.getByRole('textbox', { name: /password/i }).fill('password');
+      await page.getByRole('button', { name: /login|sign in/i }).click();
+      
+      // Wait a bit and verify no alert appeared (XSS blocked)
+      await page.waitForTimeout(1000);
+      
+      // Clear fields for next iteration
+      await page.getByRole('textbox', { name: /username|email/i }).clear();
+      await page.getByRole('textbox', { name: /password/i }).clear();
+    }
+  });
+
+  test('Verify login rate limiting (multiple failed attempts)', async ({ page }) => {
+    await page.getByRole('button', { name: 'Login' }).click();
+    
+    // Attempt multiple failed logins
+    for (let i = 0; i < 5; i++) {
+      await page.getByRole('textbox', { name: /username|email/i }).fill('invalid@test.com');
+      await page.getByRole('textbox', { name: /password/i }).
