@@ -3,7 +3,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Login Functionality - RAB-8', () => {
-  const baseUrl = 'https://robotesta.ai.com';
+  const baseUrl = 'https://robotesta.ai';
   const validEmail = 'testuser@example.com';
   const validPassword = 'TestPassword123!';
   const invalidEmail = 'invalid@example.com';
